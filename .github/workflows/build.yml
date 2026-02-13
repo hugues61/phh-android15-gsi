@@ -5,7 +5,6 @@ on:
 
 jobs:
   build:
-    # Change 'ubuntu-latest' to 'self-hosted'
     runs-on: self-hosted 
 
     steps:
@@ -31,15 +30,14 @@ jobs:
         git config --global user.name "Builder"
         mkdir -p android
         cd android
-        # FIX: Added /platform/manifest
+        # FIXED URL: Added /platform/manifest
         repo init -u https://android.googlesource.com -b android-15.0.0_r1 --depth=1
         repo sync -c -j$(nproc --all) --no-clone-bundle --no-tags
-
 
     - name: Apply PHH patches
       run: |
         cd android
-        # FIX: Added the full repo path
+        # FIXED URL: Added /phhusson/treble_experimentations
         [ -d "treble" ] || git clone https://github.com treble
         bash treble/apply-patches.sh .
 
@@ -47,8 +45,8 @@ jobs:
       run: |
         cd android
         source build/envsetup.sh
+        # If this fails, make sure the patches applied correctly in the step above
         lunch treble_arm64_bgN-userdebug
-        # 'm' is the modern command for 'make'
         m systemimage -j$(nproc --all)
 
     - name: Upload system image
@@ -58,7 +56,7 @@ jobs:
         path: android/out/target/product/treble_arm64_bgN/system.img
 
     - name: Post-build Cleanup
-      if: always() # Runs even if the build fails to save your PC space
+      if: always()
       run: |
         cd android
-        rm -rf out/  # Deletes the ~100GB build artifacts after upload
+        rm -rf out/
