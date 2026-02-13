@@ -27,13 +27,11 @@ jobs:
 
     - name: Initialize source
       run: |
-        # Configure Git Identity (needed for repo/patches)
         git config --global user.email "bot@example.com"
         git config --global user.name "Builder"
-        
         mkdir -p android
         cd android
-        # --depth=1 is CRITICAL for main drive space
+        # FIX: Added /platform/manifest
         repo init -u https://android.googlesource.com -b android-15.0.0_r1 --depth=1
         repo sync -c -j$(nproc --all) --no-clone-bundle --no-tags
 
@@ -41,7 +39,7 @@ jobs:
     - name: Apply PHH patches
       run: |
         cd android
-        # Check if treble dir exists before cloning
+        # FIX: Added the full repo path
         [ -d "treble" ] || git clone https://github.com treble
         bash treble/apply-patches.sh .
 
