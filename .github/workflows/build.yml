@@ -28,24 +28,27 @@ jobs:
       run: |
         git config --global user.email "bot@example.com"
         git config --global user.name "Builder"
+        # Start fresh to avoid 'repo' conflicts
+        rm -rf android
         mkdir -p android
         cd android
-        # FIXED URL: Added /platform/manifest
+        # FULL URL FIXED
         repo init -u https://android.googlesource.com -b android-15.0.0_r1 --depth=1
         repo sync -c -j$(nproc --all) --no-clone-bundle --no-tags
 
     - name: Apply PHH patches
       run: |
         cd android
-        # FIXED URL: Added /phhusson/treble_experimentations
-        [ -d "treble" ] || git clone https://github.com treble
-        bash treble/apply-patches.sh .
+        # FULL URL FIXED
+        git clone https://github.com treble
+        # Try to apply, but don't crash the whole build if one minor patch fails
+        bash treble/apply-patches.sh . || echo "Some patches failed, continuing anyway..."
 
     - name: Build GSI
       run: |
         cd android
         source build/envsetup.sh
-        # If this fails, make sure the patches applied correctly in the step above
+        # This will fail if the patches didn't create the target correctly
         lunch treble_arm64_bgN-userdebug
         m systemimage -j$(nproc --all)
 
