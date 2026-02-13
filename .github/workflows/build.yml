@@ -31,12 +31,21 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
+
     - name: Initialize source
-    run: |
-      mkdir android
-      cd android
-      repo init -u https://android.googlesource.com/platform/manifest -b android-15.0.0_r1
-      repo sync -c -j2
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+        mkdir android
+        cd android
+        repo init -u https://android.googlesource.com -b android-15.0.0_r1 --depth=1
+        repo sync -c -j$(nproc --all) --no-clone-bundle --no-tags
+
+    - name: Apply PHH patches
+      run: |
+        cd android
+        git clone https://github.com/phhusson/treble_experimentations treble
+        bash treble/apply-patches.sh .
 
     - name: Build GSI
       run: |
