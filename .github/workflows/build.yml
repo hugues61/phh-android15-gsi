@@ -5,8 +5,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 360
+    # Change 'ubuntu-latest' to 'self-hosted'
+    runs-on: self-hosted 
 
     steps:
     - name: Free disk space
