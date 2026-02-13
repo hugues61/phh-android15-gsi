@@ -25,20 +25,24 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-
     - name: Initialize source
       run: |
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git config --global user.name "github-actions[bot]"
-        mkdir android
+        # Configure Git Identity (needed for repo/patches)
+        git config --global user.email "bot@example.com"
+        git config --global user.name "Builder"
+        
+        mkdir -p android
         cd android
+        # --depth=1 is CRITICAL for main drive space
         repo init -u https://android.googlesource.com -b android-15.0.0_r1 --depth=1
         repo sync -c -j$(nproc --all) --no-clone-bundle --no-tags
+
 
     - name: Apply PHH patches
       run: |
         cd android
-        git clone https://github.com/phhusson/treble_experimentations treble
+        # Check if treble dir exists before cloning
+        [ -d "treble" ] || git clone https://github.com treble
         bash treble/apply-patches.sh .
 
     - name: Build GSI
@@ -46,10 +50,17 @@ jobs:
         cd android
         source build/envsetup.sh
         lunch treble_arm64_bgN-userdebug
-        make -j2
+        # 'm' is the modern command for 'make'
+        m systemimage -j$(nproc --all)
 
     - name: Upload system image
       uses: actions/upload-artifact@v4
       with:
         name: PHH-Android15-arm64-ab
         path: android/out/target/product/treble_arm64_bgN/system.img
+
+    - name: Post-build Cleanup
+      if: always() # Runs even if the build fails to save your PC space
+      run: |
+        cd android
+        rm -rf out/  # Deletes the ~100GB build artifacts after upload
