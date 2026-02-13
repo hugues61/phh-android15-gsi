@@ -32,11 +32,11 @@ jobs:
         echo "$HOME/bin" >> $GITHUB_PATH
 
     - name: Initialize source
-      run: |
-        mkdir android
-        cd android
-        repo init -u https://github.com/phhusson/treble_experimentations -b android-mainline
-        repo sync -c -j2
+    run: |
+      mkdir android
+      cd android
+      repo init -u https://android.googlesource.com/platform/manifest -b android-15.0.0_r1
+      repo sync -c -j2
 
     - name: Build GSI
       run: |
