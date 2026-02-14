@@ -20,8 +20,7 @@ jobs:
     - name: Setup repo tool
       run: |
         mkdir -p ~/bin
-        # This link is a more reliable mirror
-        curl https://raw.githubusercontent.com > ~/bin/repo
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
@@ -34,16 +33,14 @@ jobs:
         rm -rf android
         mkdir -p android
         cd android
-        # FIXED: Full URL added here
-        repo init -u https://android.googlesource.com -b android-15.0.0_r1 --depth=1
+        repo init -u https://android.googlesource.com/platform/manifest -b android-15.0.0_r1 --depth=1
         repo sync -c -j$(nproc --all) --no-clone-bundle --no-tags
 
     - name: Apply PHH patches
       run: |
         cd android
         rm -rf treble
-        # FIXED: Full URL added here
-        git clone https://github.com treble
+        git clone https://github.com/phhusson/treble_experimentations treble
         bash treble/apply-patches.sh . || echo "Some patches failed, continuing..."
 
     - name: Build GSI
