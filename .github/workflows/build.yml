@@ -52,13 +52,29 @@ jobs:
         EOF
         repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast
 
+#    - name: Apply PHH patches
+#      run: |
+#        cd android
+#        rm -rf treble
+#        git clone https://github.com/phhusson/treble_experimentations treble
+#        bash treble/apply-patches.sh . || echo "Some patches failed, continuing..."
+#        echo "persist.sys.phh.ims.force_enable=1" >> android/device/phh/treble/system.prop
+
     - name: Apply PHH patches
       run: |
         cd android
         rm -rf treble
-        git clone https://github.com/phhusson/treble_experimentations treble
-        bash treble/apply-patches.sh . || echo "Some patches failed, continuing..."
-        echo "persist.sys.phh.ims.force_enable=1" >> android/device/phh/treble/system.prop
+        # We clone the 'android-15.0' branch specifically
+        git clone https://github.com -b android-15.0 treble
+        # We use 'bash' and target '.'
+        bash treble/apply-patches.sh . || echo "Patching finished with some skips"
+
+
+
+
+
+
+
 
     - name: Enable ccache
       run: |
