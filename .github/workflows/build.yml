@@ -58,19 +58,30 @@ jobs:
         rm -rf treble
         git clone https://github.com/phhusson/treble_experimentations treble
         bash treble/apply-patches.sh . || echo "Some patches failed, continuing..."
+        echo "persist.sys.phh.ims.force_enable=1" >> android/device/phh/treble/system.prop
+
+    - name: Enable ccache
+      run: |
+        echo "export USE_CCACHE=1" >> $GITHUB_ENV
+        echo "export CCACHE_EXEC=$(which ccache)" >> $GITHUB_ENV
+        ccache -M 50G
 
     - name: Build GSI
       run: |
         cd android
         source build/envsetup.sh
-        lunch treble_arm64_bgN-userdebug
-        m systemimage -j$(nproc --all)
+        export BUILD_BROKEN_USES_NETWORK=true
+        export BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES=true
+        lunch treble_arm64_bN-userdebug
+        m systemimage -j2
+
+
 
     - name: Upload system image
       uses: actions/upload-artifact@v4
       with:
         name: PHH-Android15-arm64-ab
-        path: android/out/target/product/treble_arm64_bgN/system.img
+        path: android/out/target/product/treble_arm64_bN/system.img
 
     - name: Post-build Cleanup
       if: always()
@@ -78,8 +89,3 @@ jobs:
         cd android
         rm -rf out/
 
-    - name: Post-build Cleanup
-      if: always()
-      run: |
-        cd android
-        rm -rf out/
