@@ -33,7 +33,7 @@ jobs:
         rm -rf android
         mkdir -p android
         cd android
-        repo init -u https://android.googlesource.com/platform/manifest -b android-15.0.0_r1 --depth=1
+        repo init -u https://android.googlesource.com/platform/manifest -b android-15.0.0_r1
         
     - name: Slim manifest
       run: |
@@ -52,29 +52,14 @@ jobs:
         EOF
         repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast
 
-#    - name: Apply PHH patches
-#      run: |
-#        cd android
-#        rm -rf treble
-#        git clone https://github.com/phhusson/treble_experimentations treble
-#        bash treble/apply-patches.sh . || echo "Some patches failed, continuing..."
-#        echo "persist.sys.phh.ims.force_enable=1" >> android/device/phh/treble/system.prop
-
     - name: Apply PHH patches
       run: |
-        cd android
-        rm -rf treble
-        # We clone the 'android-15.0' branch specifically
-        git clone https://github.com -b android-15.0 treble
-        # We use 'bash' and target '.'
-        bash treble/apply-patches.sh . || echo "Patching finished with some skips"
-
-
-
-
-
-
-
+         cd android
+         rm -rf treble
+         git clone https://github.com/phhusson/treble_experimentations treble
+         bash treble/apply-patches.sh . || echo "Some patches failed, continuing..."
+         echo "persist.sys.phh.ims.force_enable=1" >> device/phh/treble/system.prop
+#         echo "persist.sys.phh.ims.force_enable=1" >> android/device/phh/treble/system.prop
 
     - name: Enable ccache
       run: |
