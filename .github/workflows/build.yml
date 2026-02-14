@@ -32,19 +32,7 @@ jobs:
         mkdir -p android
         cd android
         repo init -u https://android.googlesource.com/platform/manifest -b android-15.0.0_r1
-        
-    - name: Slim manifest
-      run: |
-        cd android
-        mkdir -p .repo/local_manifests
-
-        cat > .repo/local_manifests/remove.xml << 'EOF'
-        <manifest>
-        <remove-project name="platform/tools/cts"/>
-        <remove-project name="platform/test"/>
-        </manifest>
-        EOF
-        repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast
+        repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast --groups=default,-cts,-test
 
     - name: Apply PHH patches
       run: |
