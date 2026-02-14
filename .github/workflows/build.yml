@@ -24,8 +24,6 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-
-
     - name: Initialize source
       run: |
         git config --global user.email "bot@example.com"
@@ -42,12 +40,8 @@ jobs:
 
         cat > .repo/local_manifests/remove.xml << 'EOF'
         <manifest>
-        <remove-project name="platform/cts"/>
-        <remove-project name="platform/cts-common"/>
-        <remove-project name="platform/cts-hostsidetests"/>
-        <remove-project name="platform/test"/>
         <remove-project name="platform/tools/cts"/>
-        <remove-project name="platform/developers"/>
+        <remove-project name="platform/test"/>
         </manifest>
         EOF
         repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast
@@ -75,8 +69,6 @@ jobs:
         export BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES=true
         lunch treble_arm64_bN-userdebug
         m systemimage -j2
-
-
 
     - name: Upload system image
       uses: actions/upload-artifact@v4
