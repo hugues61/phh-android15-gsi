@@ -20,33 +20,33 @@ jobs:
     - name: Setup repo tool
       run: |
         mkdir -p ~/bin
-        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        curl https://storage.googleapis.com > ~/bin/repo
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
 
-        - name: Initialize source
+    - name: Initialize source
       run: |
         git config --global user.email "bot@example.com"
         git config --global user.name "Builder"
         rm -rf android
         mkdir -p android
         cd android
-        # FIXED: Added /platform/manifest
-        repo init -u https://android.googlesource.com/platform/manifest -b android-15.0.0_r1 --depth=1
+        # FIXED: Full URL added here
+        repo init -u https://android.googlesource.com -b android-15.0.0_r1 --depth=1
         repo sync -c -j$(nproc --all) --no-clone-bundle --no-tags
 
     - name: Apply PHH patches
       run: |
         cd android
         rm -rf treble
-        # FIXED: Added /phhusson/treble_experimentations
-        git clone https://github.com/phhusson/treble_experimentations treble
-        bash treble/apply-patches.sh . || echo "Some patches failed, continuing anyway..."
+        # FIXED: Full URL added here
+        git clone https://github.com treble
+        bash treble/apply-patches.sh . || echo "Some patches failed, continuing..."
+
     - name: Build GSI
       run: |
         cd android
         source build/envsetup.sh
-        # This will fail if the patches didn't create the target correctly
         lunch treble_arm64_bgN-userdebug
         m systemimage -j$(nproc --all)
 
@@ -55,6 +55,12 @@ jobs:
       with:
         name: PHH-Android15-arm64-ab
         path: android/out/target/product/treble_arm64_bgN/system.img
+
+    - name: Post-build Cleanup
+      if: always()
+      run: |
+        cd android
+        rm -rf out/
 
     - name: Post-build Cleanup
       if: always()
