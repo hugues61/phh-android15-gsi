@@ -11,6 +11,9 @@ jobs:
     - name: Clean workspace completely
       run: |
         sudo rm -rf $GITHUB_WORKSPACE/*
+        cd android
+        # Remove any git lock files that cause sync hangs
+        find .repo -name 'index.lock' -delete
     
     - name: Install dependencies
       run: |
