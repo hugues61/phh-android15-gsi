@@ -42,7 +42,6 @@ jobs:
         repo init \
           -u https://android.googlesource.com/platform/manifest \
           -b android-15.0.0_r1 \
-          --depth=1
           
         repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast
         
