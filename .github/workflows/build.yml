@@ -2,7 +2,6 @@ name: Build PHH Android 15 GSI
 
 on:
   workflow_dispatch:
-    runs-on: self-hosted
   
 jobs:
   build:
@@ -41,8 +40,9 @@ jobs:
         cd android
 
         repo init \
-        -u https://android.googlesource.com/platform/manifest \
-        -b android-15.0.0_r1 \
+          -u https://android.googlesource.com/platform/manifest \
+          -b android-15.0.0_r1 \
+        
         repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast --depth=1
         
     - name: Apply PHH patches
