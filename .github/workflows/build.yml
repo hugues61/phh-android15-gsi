@@ -41,8 +41,8 @@ jobs:
           -b android-15.0.0_r1 \
           --no-partial-clone
           
-        repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast
-        
+        GIT_TRACE=1 GIT_CURL_VERBOSE=1 repo sync -c -j1 --no-tags --no-clone-bundle
+          
     - name: Apply PHH patches
       run: |
          cd android
