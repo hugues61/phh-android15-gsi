@@ -29,7 +29,7 @@ jobs:
         chmod a+x ~/bin/repo
         echo "$HOME/bin" >> $GITHUB_PATH
         repo --version
-    
+        
     - name: Initialize source
       run: |
         git config --global user.email "bot@example.com"
