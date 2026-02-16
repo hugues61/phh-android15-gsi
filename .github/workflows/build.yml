@@ -2,7 +2,7 @@ name: Build PHH Android 15 GSI
 
 on:
   workflow_dispatch:
-  runs-on: self-hosted
+    runs-on: self-hosted
   
 jobs:
   build:
