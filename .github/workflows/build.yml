@@ -44,8 +44,7 @@ jobs:
         -u https://android.googlesource.com/platform/manifest \
         -b android-15.0.0_r1 \
         --groups=default,-cts,-test
-        
-#        GIT_TRACE=1 repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast
+
         repo sync -c -j1 --no-tags --no-clone-bundle --fail-fast
 
     - name: Apply PHH patches
