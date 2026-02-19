@@ -78,4 +78,3 @@ jobs:
       run: |
         cd android
         rm -rf out/
-
