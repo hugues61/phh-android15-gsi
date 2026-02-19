@@ -1,80 +1,77 @@
-name: Build PHH Android 15 GSI
+name: Build PHH GSI Android 15
 
 on:
   workflow_dispatch:
-  
+
 jobs:
   build:
-    runs-on: self-hosted 
+    runs-on: self-hosted
+
+    env:
+      ANDROID_DIR: /srv/aosp/android
+      CCACHE_DIR: /srv/aosp/ccache
 
     steps:
+      - name: Prepare Directories
+        run: |
+          mkdir -p "$ANDROID_DIR"
+          mkdir -p "$CCACHE_DIR"
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y git-core gnupg flex bison build-essential zip curl \
-        zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
-        lib32ncurses-dev x11proto-core-dev libx11-dev lib32z1-dev \
-        libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig \
-        openjdk-17-jdk python3 rsync bc ccache libncurses6
+      - name: Ensure repo in PATH
+        run: |
+          mkdir -p ~/bin
+          if [ ! -f ~/bin/repo ]; then
+            curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+            chmod a+x ~/bin/repo
+          fi
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-    - name: Setup repo tool
-      run: |
-        mkdir -p ~/bin
-        curl -L https://storage.googleapis.com/git-repo-downloads/repo -o ~/bin/repo
-        chmod a+x ~/bin/repo
-        echo "$HOME/bin" >> $GITHUB_PATH
-        repo --version
-        
-    - name: Initialize source
-      run: |
-        git config --global user.email "bot@example.com"
-        git config --global user.name "Builder"
-        git config --global --add safe.directory '*'
+      - name: Init or Repair AOSP Tree
+        run: |
+          set -e
+          cd "$ANDROID_DIR"
 
-        rm -rf android
-        mkdir android
-        cd android
+          if [ ! -d .repo ]; then
+            echo "Initializing fresh AOSP tree..."
+            repo init \
+              -u https://android.googlesource.com/platform/manifest \
+              -b android-15.0.0_r1
+          fi
 
-        repo init \
-          -u https://android.googlesource.com/platform/manifest \
-          -b android-15.0.0_r1 \
-          --no-partial-clone
-          
-        GIT_TRACE=1 GIT_CURL_VERBOSE=1 repo sync -c -j1 --no-tags --no-clone-bundle
-          
-    - name: Apply PHH patches
-      run: |
-         cd android
-         rm -rf treble
-         git clone https://github.com/phhusson/treble_experimentations treble
-         bash treble/apply-patches.sh . || echo "Some patches failed, continuing..."
-         echo "persist.sys.phh.ims.force_enable=1" >> device/phh/treble/system.prop
-#         echo "persist.sys.phh.ims.force_enable=1" >> android/device/phh/treble/system.prop
+          echo "Syncing..."
+          if ! repo sync -j$(nproc); then
+            echo "Sync failed. Attempting repair..."
+            repo forall -c 'git reset --hard' || true
+            repo sync -j$(nproc)
+          fi
 
-    - name: Enable ccache
-      run: |
-        echo "export USE_CCACHE=1" >> $GITHUB_ENV
-        echo "export CCACHE_EXEC=$(which ccache)" >> $GITHUB_ENV
-        ccache -M 50G
+      - name: Clone PHH Treble (if missing)
+        run: |
+          cd "$ANDROID_DIR"
+          if [ ! -d device/phh/treble ]; then
+            git clone \
+              https://github.com/phhusson/treble_manifest.git \
+              -b android-15.0 \
+              device/phh/treble
+          fi
 
-    - name: Build GSI
-      run: |
-        cd android
-        source build/envsetup.sh
-        export BUILD_BROKEN_USES_NETWORK=true
-        export BUILD_BROKEN_ELF_PREBUILT_PRODUCT_COPY_FILES=true
-        lunch treble_arm64_bN-userdebug
-        m systemimage -j2
+      - name: Enable IMS Force (safe append)
+        run: |
+          cd "$ANDROID_DIR"
+          if [ -f device/phh/treble/system.prop ]; then
+            grep -q persist.sys.phh.ims.force_enable device/phh/treble/system.prop || \
+            echo "persist.sys.phh.ims.force_enable=1" >> device/phh/treble/system.prop
+          fi
 
-    - name: Upload system image
-      uses: actions/upload-artifact@v4
-      with:
-        name: PHH-Android15-arm64-ab
-        path: android/out/target/product/treble_arm64_bN/system.img
+      - name: Build GSI
+        run: |
+          set -e
+          cd "$ANDROID_DIR"
 
-    - name: Post-build Cleanup
-      if: always()
-      run: |
-        cd android
-        rm -rf out/
+          export USE_CCACHE=1
+          export CCACHE_DIR="$CCACHE_DIR"
+
+          source build/envsetup.sh
+          lunch treble_arm64_bN-userdebug
+
+          make -j$(nproc) systemimage
