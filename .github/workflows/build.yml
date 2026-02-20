@@ -8,45 +8,57 @@ jobs:
     runs-on: self-hosted
 
     env:
-      ANDROID_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/srv/aosp/android
-      CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/srv/aosp/ccache
+      ANDROID_DIR: /media/aosp/android
+      CCACHE_DIR: /media/aosp/ccache
 
     steps:
-      - name: Prepare Directories
-        run: |
-          mkdir -p "$ANDROID_DIR"
-          mkdir -p "$CCACHE_DIR"
+    - name: Prepare directories
+      run: |
+        mkdir -p "$ANDROID_DIR"
+        mkdir -p "$CCACHE_DIR"
 
-      - name: Ensure repo in PATH
-        run: |
-          mkdir -p ~/bin
-          if [ ! -f ~/bin/repo ]; then
-            curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-            chmod a+x ~/bin/repo
-          fi
-          echo "$HOME/bin" >> $GITHUB_PATH
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          git-core gnupg flex bison build-essential zip curl zlib1g-dev \
+          gcc-multilib g++-multilib libc6-dev-i386 \
+          lib32ncurses-dev x11proto-core-dev libx11-dev lib32z1-dev \
+          libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig \
+          openjdk-17-jdk python3 rsync bc ccache repo
 
-      - name: Init or Repair AOSP Tree
-        run: |
-          set -e
-          cd "$ANDROID_DIR"
+    - name: Setup git
+      run: |
+        git config --global user.email "builder@local"
+        git config --global user.name "Android Builder"
+        git config --global --add safe.directory '*'
 
-          if [ ! -d .repo ]; then
-            echo "Initializing fresh AOSP tree..."
-            repo init \
-              -u https://android.googlesource.com/platform/manifest \
-              -b android-15.0.0_r1
-          fi
+    - name: Init AOSP (only first time)
+      run: |
+        cd "$ANDROID_DIR"
 
-          echo "Syncing..."
-          if ! repo sync -j$(nproc); then
-            echo "Sync failed. Attempting repair..."
-            repo forall -c 'git reset --hard' || true
-            repo sync -j$(nproc)
-          fi
+        if [ ! -d .repo ]; then
+          repo init \
+            -u https://android.googlesource.com/platform/manifest \
+            -b android-15.0.0_r1
+        fi
 
-      - name: Clone PHH Treble (if missing)
-        run: |
+    - name: Sync sources
+      run: |
+        cd "$ANDROID_DIR"
+
+        repo sync -c \
+          --no-tags \
+          --no-clone-bundle \
+          -j$(nproc) || {
+
+          echo "Repairing repo"
+          repo forall -c 'git reset --hard'
+          repo sync -j$(nproc)
+        }
+
+    - name: Clone PHH Treble (if missing)
+      run: |
           cd "$ANDROID_DIR"
           if [ ! -d device/phh/treble ]; then
             git clone \
@@ -55,23 +67,25 @@ jobs:
               device/phh/treble
           fi
 
-      - name: Enable IMS Force (safe append)
-        run: |
+    - name: Enable IMS Force (safe append)
+      run: |
           cd "$ANDROID_DIR"
           if [ -f device/phh/treble/system.prop ]; then
             grep -q persist.sys.phh.ims.force_enable device/phh/treble/system.prop || \
             echo "persist.sys.phh.ims.force_enable=1" >> device/phh/treble/system.prop
           fi
 
-      - name: Build GSI
-        run: |
-          set -e
-          cd "$ANDROID_DIR"
+    - name: Setup ccache
+      run: |
+        echo "USE_CCACHE=1" >> $GITHUB_ENV
+        echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
+        ccache -M 80G
 
-          export USE_CCACHE=1
-          export CCACHE_DIR="$CCACHE_DIR"
+    - name: Build
+      run: |
+        cd "$ANDROID_DIR"
 
-          source build/envsetup.sh
-          lunch treble_arm64_bN-userdebug
+        source build/envsetup.sh
+        lunch treble_arm64_bN-userdebug
 
-          make -j$(nproc) systemimage
+        m systemimage -j$(nproc)
