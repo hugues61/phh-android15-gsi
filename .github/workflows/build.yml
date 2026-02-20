@@ -61,10 +61,7 @@ jobs:
       run: |
           cd "$ANDROID_DIR"
           if [ ! -d device/phh/treble ]; then
-            git clone \
-              https://github.com/phhusson/treble_manifest.git \
-              -b android-15.0 \
-              device/phh/treble
+              git clone https://github.com/phhusson/treble_manifest.git -b master device/phh/treble
           fi
 
     - name: Enable IMS Force (safe append)
