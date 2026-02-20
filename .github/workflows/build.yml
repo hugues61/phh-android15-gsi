@@ -8,8 +8,8 @@ jobs:
     runs-on: self-hosted
 
     env:
-      ANDROID_DIR: /media/aosp/android
-      CCACHE_DIR: /media/aosp/ccache
+      ANDROID_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/srv/aosp/android
+      CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/srv/aosp/ccache
 
     steps:
     - name: Prepare directories
