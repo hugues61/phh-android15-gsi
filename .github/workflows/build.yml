@@ -1,4 +1,4 @@
-name: Build PHH GSI Android 15
+name: Build PHH Android 15 GSI (Fast)
 
 on:
   workflow_dispatch:
@@ -7,82 +7,82 @@ jobs:
   build:
     runs-on: self-hosted
 
-    env:
-      ANDROID_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/srv/aosp/android
-      CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/srv/aosp/ccache
 
-    steps:
-    - name: Prepare directories
-      run: |
-        mkdir -p "$ANDROID_DIR"
-        mkdir -p "$CCACHE_DIR"
+env:
+  WORK_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/aosp
+  CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/ccache
 
-    - name: Install dependencies
-      run: |
+steps:
+  - name: Prepare directories
+    run: |
+      mkdir -p "$WORK_DIR"
+      mkdir -p "$CCACHE_DIR"
+
+  - name: Install dependencies
+    run: |
         sudo apt update
         sudo apt install -y \
-          git-core gnupg flex bison build-essential zip curl zlib1g-dev \
-          gcc-multilib g++-multilib libc6-dev-i386 \
-          lib32ncurses-dev x11proto-core-dev libx11-dev lib32z1-dev \
-          libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig \
-          openjdk-17-jdk python3 rsync bc ccache repo
+        git-core repo git-lfs \
+        openjdk-17-jdk \
+        bc bison build-essential curl flex g++-multilib gcc-multilib \
+        gnupg gperf lib32ncurses-dev lib32readline-dev lib32z1-dev \
+        liblz4-tool libncurses6 libsdl1.2-dev libssl-dev \
+        libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc \
+        zip zlib1g-dev ccache python3
 
-    - name: Setup git
-      run: |
-        git config --global user.email "builder@local"
-        git config --global user.name "Android Builder"
-        git config --global --add safe.directory '*'
+  - name: Setup git
+    run: |
+          git config --global user.email "builder@local"
+          git config --global user.name "Android Builder"
 
-    - name: Init AOSP (only first time)
-      run: |
-        cd "$ANDROID_DIR"
+  - name: Setup ccache
+    run: |
+          echo "USE_CCACHE=1" >> $GITHUB_ENV
+          echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
+          ccache -M 80G
 
-        if [ ! -d .repo ]; then
+  - name: Init PHH manifest
+    run: |
+          cd "$WORK_DIR"
+
+          if [ ! -d .repo ]; then
           repo init \
-            -u https://android.googlesource.com/platform/manifest \
-            -b android-15.0.0_r1
-        fi
+          -u https://github.com/phhusson/treble_manifest \
+          -b android-15
+          fi
 
-    - name: Sync sources
-      run: |
-        cd "$ANDROID_DIR"
+  - name: Sync sources
+    run: |
+          cd "$WORK_DIR"
 
-        repo sync -c \
+          repo sync \
+          -c \
           --no-tags \
           --no-clone-bundle \
-          -j$(nproc) || {
+          --optimized-fetch \
+          -j$(nproc)
 
-          echo "Repairing repo"
-          repo forall -c 'git reset --hard'
-          repo sync -j$(nproc)
-        }
+  - name: Enable IMS (VoLTE helper)
+    run: |
+          cd "$WORK_DIR"
 
-    - name: Clone PHH Treble (if missing)
-      run: |
-          cd "$ANDROID_DIR"
-          if [ ! -d device/phh/treble ]; then
-              git clone https://github.com/phhusson/treble_manifest.git -b master device/phh/treble
-          fi
+          cat >> device/phh/treble/system.prop <<EOF
+          persist.sys.phh.ims.force_enable=1
+          persist.dbg.volte_avail_ovr=1
+          persist.dbg.vt_avail_ovr=1
+          persist.dbg.wfc_avail_ovr=1
+          persist.vendor.radio.calls.on.ims=1
+          persist.vendor.radio.data_con_rprt=1
+          EOF
 
-    - name: Enable IMS Force (safe append)
-      run: |
-          cd "$ANDROID_DIR"
-          if [ -f device/phh/treble/system.prop ]; then
-            grep -q persist.sys.phh.ims.force_enable device/phh/treble/system.prop || \
-            echo "persist.sys.phh.ims.force_enable=1" >> device/phh/treble/system.prop
-          fi
 
-    - name: Setup ccache
-      run: |
-        echo "USE_CCACHE=1" >> $GITHUB_ENV
-        echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
-        ccache -M 80G
+  - name: Build GSI
+    run: |
+          cd "$WORK_DIR"
 
-    - name: Build
-      run: |
-        cd "$ANDROID_DIR"
+          source build/envsetup.sh
 
-        source build/envsetup.sh
-        lunch treble_arm64_bN-userdebug
+          lunch treble_arm64_bN-ap3a-userdebug
 
-        m systemimage -j$(nproc)
+           make systemimage -j$(nproc)
+          
