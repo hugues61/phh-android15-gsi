@@ -1,4 +1,4 @@
-name: Build PHH Android 15 GSI (Fast)
+name: Build TrebleDroid Android 15 GSI
 
 on:
   workflow_dispatch:
@@ -6,10 +6,10 @@ on:
 jobs:
   build:
     runs-on: self-hosted
-
     env:
       WORK_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/aosp
       CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/ccache
+      USE_CCACHE: 1
 
     steps:
     - name: Prepare directories
@@ -21,8 +21,7 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y \
-          git-core repo git-lfs \
-          openjdk-17-jdk \
+          git-core repo git-lfs openjdk-21-jdk \
           bc bison build-essential curl flex g++-multilib gcc-multilib \
           gnupg gperf lib32ncurses-dev lib32readline-dev lib32z1-dev \
           liblz4-tool libncurses6 libsdl1.2-dev libssl-dev \
@@ -34,61 +33,48 @@ jobs:
         git config --global user.email "builder@local"
         git config --global user.name "Android Builder"
 
-    - name: Setup ccache
-      run: |
-        echo "USE_CCACHE=1" >> $GITHUB_ENV
-        echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
-        ccache -M 80G
-
-    - name: Init PHH manifest
+    - name: Init TrebleDroid manifest
       run: |
         cd "$WORK_DIR"
-
         if [ ! -d .repo ]; then
+          # depth=1 saves ~50GB of disk space and hours of sync time
           repo init \
-            -u https://github.com/phhusson/treble_manifest \
-            -b android-14.0
+            -u https://github.com \
+            -b android-15.0 \
+            --depth=1
         fi
-
 
     - name: Sync sources
       run: |
         cd "$WORK_DIR"
+        repo sync -c -j$(nproc) --no-tags --no-clone-bundle
 
-        repo sync \
-          -c \
-          --no-tags \
-          --no-clone-bundle \
-          --optimized-fetch \
-          -j$(nproc)
-
-    - name: Enable IMS (VoLTE helper)
+    - name: Apply TrebleDroid Patches
       run: |
         cd "$WORK_DIR"
+        # This is the "secret sauce" that makes it a PHH/Treble GSI
+        bash treble_experimentations/apply-patches.sh .
 
-        cat >> device/phh/treble/system.prop <<EOF
-        persist.sys.phh.ims.force_enable=1
-        persist.dbg.volte_avail_ovr=1
-        persist.dbg.vt_avail_ovr=1
-        persist.dbg.wfc_avail_ovr=1
-        persist.vendor.radio.calls.on.ims=1
-        persist.vendor.radio.data_con_rprt=1
-        EOF
-
+    - name: Configure IMS & Build environment
+      run: |
+        cd "$WORK_DIR"
+        # Using the standard system.prop path for TrebleDroid
+        echo "persist.sys.phh.ims.force_enable=1" >> device/phh/treble/system.prop
+        ccache -M 80G
 
     - name: Build GSI
       run: |
         cd "$WORK_DIR"
-
         source build/envsetup.sh
-
-        lunch treble_arm64_bN-ap3a-userdebug
-
+        
+        # A15 uses 'trunk_staging' as the default release config
+        # 'v' in bvN stands for 'Vanilla' (AOSP)
+        lunch treble_arm64_bvN-trunk_staging-userdebug
+        
         make systemimage -j$(nproc)
 
     - name: Upload image
       uses: actions/upload-artifact@v4
       with:
         name: Android15-GSI
-        path: ${{ env.WORK_DIR }}/out/target/product/*/system.img
-
+        path: ${{ env.WORK_DIR }}/out/target/product/phh_arm64_a/system.img
