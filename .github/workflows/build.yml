@@ -7,79 +7,79 @@ jobs:
   build:
     runs-on: self-hosted
     
-env:
-  WORK_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/aosp
-  CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/ccache
+  env:
+    WORK_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/aosp
+    CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/ccache
   
-steps:
-  - name: Prepare directories
-    run: |
-      mkdir -p "$WORK_DIR"
-      mkdir -p "$CCACHE_DIR"
+  steps:
+    - name: Prepare directories
+      run: |
+        mkdir -p "$WORK_DIR"
+        mkdir -p "$CCACHE_DIR"
       
-  - name: Install dependencies
-    run: |
-      sudo apt update
-      sudo apt install -y \
-      git-core repo git-lfs \
-      openjdk-17-jdk \
-      bc bison build-essential curl flex g++-multilib gcc-multilib \
-      gnupg gperf lib32ncurses-dev lib32readline-dev lib32z1-dev \
-      liblz4-tool libncurses6 libsdl1.2-dev libssl-dev \
-      libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc \
-      zip zlib1g-dev ccache python3
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+        git-core repo git-lfs \
+        openjdk-17-jdk \
+        bc bison build-essential curl flex g++-multilib gcc-multilib \
+        gnupg gperf lib32ncurses-dev lib32readline-dev lib32z1-dev \
+        liblz4-tool libncurses6 libsdl1.2-dev libssl-dev \
+        libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc \
+        zip zlib1g-dev ccache python3
       
-  - name: Setup git
-    run: |
-      git config --global user.email "builder@local"
-      git config --global user.name "Android Builder"
+    - name: Setup git
+      run: |
+        git config --global user.email "builder@local"
+        git config --global user.name "Android Builder"
       
-  - name: Setup ccache
-    run: |
-      echo "USE_CCACHE=1" >> $GITHUB_ENV
-      echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
-      ccache -M 80G
+    - name: Setup ccache
+      run: |
+        echo "USE_CCACHE=1" >> $GITHUB_ENV
+        echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
+        ccache -M 80G
       
-  - name: Init PHH manifest
-    run: |
-      cd "$WORK_DIR"
-      if [ ! -d .repo ]; then
-        repo init \
-        -u https://github.com/phhusson/treble_manifest \
-        -b android-15
-      fi
+    - name: Init PHH manifest
+      run: |
+        cd "$WORK_DIR"
+        if [ ! -d .repo ]; then
+          repo init \
+          -u https://github.com/phhusson/treble_manifest \
+          -b android-15
+        fi
       
-  - name: Sync sources
-    run: |
-      cd "$WORK_DIR"
+    - name: Sync sources
+      run: |
+        cd "$WORK_DIR"
 
-      repo sync \
-      -c \
-      --no-tags \
-      --no-clone-bundle \
-      --optimized-fetch \
-      -j$(nproc)
+        repo sync \
+        -c \
+        --no-tags \
+        --no-clone-bundle \
+        --optimized-fetch \
+        -j$(nproc)
       
-  - name: Enable IMS (VoLTE helper)
-    run: |
-      cd "$WORK_DIR"
+    - name: Enable IMS (VoLTE helper)
+      run: |
+        cd "$WORK_DIR"
 
-      cat >> device/phh/treble/system.prop <<EOF
-      persist.sys.phh.ims.force_enable=1
-      persist.dbg.volte_avail_ovr=1
-      persist.dbg.vt_avail_ovr=1
-      persist.dbg.wfc_avail_ovr=1
-      persist.vendor.radio.calls.on.ims=1
-      persist.vendor.radio.data_con_rprt=1
-      EOF
+        cat >> device/phh/treble/system.prop <<EOF
+        persist.sys.phh.ims.force_enable=1
+        persist.dbg.volte_avail_ovr=1
+        persist.dbg.vt_avail_ovr=1
+        persist.dbg.wfc_avail_ovr=1
+        persist.vendor.radio.calls.on.ims=1
+        persist.vendor.radio.data_con_rprt=1
+        EOF
       
-  - name: Build GSI
-    run: |
-      cd "$WORK_DIR"
+    - name: Build GSI
+      run: |
+        cd "$WORK_DIR"
 
-      source build/envsetup.sh
+        source build/envsetup.sh
 
-      lunch treble_arm64_bN-ap3a-userdebug
+        lunch treble_arm64_bN-ap3a-userdebug
 
       make systemimage -j$(nproc)
             
