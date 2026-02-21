@@ -55,6 +55,7 @@ jobs:
         cd "$WORK_DIR"
         # Force sync to handle broken local trees
         repo sync -c -j$(nproc) --no-tags --no-clone-bundle --force-sync
+        
     - name: Apply TrebleDroid Patches
       run: |
         cd "$WORK_DIR"
