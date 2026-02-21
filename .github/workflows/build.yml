@@ -7,8 +7,8 @@ jobs:
   build:
     runs-on: self-hosted
     env:
-      WORK_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/aosp
-      CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/ccache
+      WORK_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/srv/aosp
+      CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/srvccache
       USE_CCACHE: 1
 
     steps:
