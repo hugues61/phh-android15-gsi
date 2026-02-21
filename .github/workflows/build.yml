@@ -36,15 +36,11 @@ jobs:
     - name: Init TrebleDroid manifest
       run: |
         cd "$WORK_DIR"
-        # If manifest.xml is missing, the repo is broken; clear and re-init
-        if [ ! -f .repo/manifest.xml ]; then
-          echo "Repo missing or corrupt. Cleaning and initializing..."
-          rm -rf .repo
-          repo init \
-            -u https://github.com \
-            -b android-15.0 \
-            --depth=1
-        fi
+        # Force re-initialization with the correct URL to overwrite the 'github.com' error
+        repo init \
+          -u https://github.com \
+          -b android-15.0 \
+          --depth=1
 
     - name: Sync sources
       run: |
