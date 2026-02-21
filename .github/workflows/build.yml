@@ -47,7 +47,7 @@ jobs:
         if [ ! -d .repo ]; then
           repo init \
             -u https://github.com/phhusson/treble_manifest \
-            -b android-15
+            -b android-14.0
         fi
 
 
