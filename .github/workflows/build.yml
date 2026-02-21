@@ -6,6 +6,7 @@ on:
 jobs:
   build:
     runs-on: self-hosted
+    
 env:
   WORK_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/aosp
   CCACHE_DIR: /media/hugues/6d773edd-ab57-425e-accd-3cb166ced1b7/ccache
@@ -73,7 +74,7 @@ steps:
       EOF
       
   - name: Build GSI
-    run: |+
+    run: |
       cd "$WORK_DIR"
 
       source build/envsetup.sh
