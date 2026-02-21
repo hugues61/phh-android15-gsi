@@ -36,8 +36,10 @@ jobs:
     - name: Init TrebleDroid manifest
       run: |
         cd "$WORK_DIR"
-        if [ ! -d .repo ]; then
-          # depth=1 saves ~50GB of disk space and hours of sync time
+        # If manifest.xml is missing, the repo is broken; clear and re-init
+        if [ ! -f .repo/manifest.xml ]; then
+          echo "Repo missing or corrupt. Cleaning and initializing..."
+          rm -rf .repo
           repo init \
             -u https://github.com \
             -b android-15.0 \
@@ -47,8 +49,8 @@ jobs:
     - name: Sync sources
       run: |
         cd "$WORK_DIR"
-        repo sync -c -j$(nproc) --no-tags --no-clone-bundle
-
+        # Force sync to handle broken local trees
+        repo sync -c -j$(nproc) --no-tags --no-clone-bundle --force-sync
     - name: Apply TrebleDroid Patches
       run: |
         cd "$WORK_DIR"
