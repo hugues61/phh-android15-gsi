@@ -33,10 +33,18 @@ jobs:
         git config --global user.email "builder@local"
         git config --global user.name "Android Builder"
 
+
     - name: Init TrebleDroid manifest
       run: |
         cd "$WORK_DIR"
-        # Force re-initialization with the correct URL to overwrite the 'github.com' error
+        
+        # Check if the existing repo is pointed to the wrong place
+        if [ -d .repo ] && ! grep -q "TrebleDroid" .repo/manifests.git/config 2>/dev/null; then
+          echo "Detected corrupted or wrong manifest URL. Nuking .repo..."
+          rm -rf .repo
+        fi
+
+        # Re-initialize with the correct URL
         repo init \
           -u https://github.com \
           -b android-15.0 \
